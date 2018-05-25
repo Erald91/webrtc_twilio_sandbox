@@ -1,0 +1,25 @@
+{
+  "name": "webrtctwilio",
+  "version": "1.0.0",
+  "description": "Testing Twilio Programmable Video capabilities",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rimraf public/index.js",
+    "build": "browserify src/index.js > public/index.js",
+    "start": "npm run clean && npm run build && node app.js"
+  },
+  "author": "erald.c@scopicsoftware.com",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^16.2.2",
+    "copyfiles": "^2.0.0",
+    "rimraf": "^2.6.2"
+  },
+  "dependencies": {
+    "dotenv": "^5.0.1",
+    "express": "^4.16.3",
+    "twilio": "^3.17.0",
+    "twilio-video": "^1.9.0"
+  }
+}
