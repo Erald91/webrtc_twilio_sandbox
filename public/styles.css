@@ -71,6 +71,8 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    margin-left: 10px;
+
 }
 
 .app-wrapper .custom-button.error {
@@ -79,4 +81,16 @@
 
 .app-wrapper .custom-button.success {
     background-color: #11b511;
+}
+
+.app-wrapper .custom-button.mic {
+    background-image: url(./images/mic.png);
+    background-size: 25px;
+    background-position: center;
+    background-color: #d3d3d3;
+    background-repeat: no-repeat;
+}
+
+.app-wrapper .custom-button.mic.no-mic {
+    background-image: url(./images/no_mic.png) !important;
 }

@@ -4,6 +4,8 @@ var Video = require('twilio-video');
 
 var identity;
 var roomInstance;
+var localMediaTracks;
+var callType;
 
 var tracksHelperModule = (function() {
     var factory = {
@@ -12,6 +14,7 @@ var tracksHelperModule = (function() {
         detachTracks: _detachTracks,
         detachParticipantTracks: _detachParticipantTracks
     }
+
     // Attach the Tracks to the DOM.
     function _attachTracks(tracks, container) {
         tracks.forEach(function(track) {
@@ -37,7 +40,6 @@ var tracksHelperModule = (function() {
         tracks.forEach(function(track) {
             var isVideo = track.kind === 'video';
             track.detach().forEach(function(detachedElement) {
-                console.log(detachedElement.parentNode);
                 if(isVideo) detachedElement.parentNode.remove();
                 else detachedElement.remove();
             });
@@ -56,8 +58,9 @@ var tracksHelperModule = (function() {
 $(document).ready(function() {
     // will use a predefined Room for testing
     var roomName = "TestingRoom";
-    var joinRoomButton = document.getElementById('join-room');
+    var $joinRoomButton = $('.join-room');
     var leaveRoomButton = document.getElementById('leave-room');
+    var micHandlerButton = document.getElementById('mic-handler');
     var videoControls = document.getElementById('video-controls');
     var localMediaContainer = document.getElementById('local-media-icon');
     var remoteMediaContainer = document.getElementById('remote-media-container');
@@ -66,10 +69,12 @@ $(document).ready(function() {
         identity = data.identity;
         // When Twilio token recived successfully we can display controls
         videoControls.style.display = 'flex';
-        joinRoomButton.style.display = 'flex';
+        $joinRoomButton.css("display", "flex");
 
         // Do needed actions after "Join" button is triggered
-        joinRoomButton.onclick = function() {
+        $joinRoomButton.on('click', function(event) {
+            var _this = $(event.target);
+            callType = _this.data().type;
             const options = {
                 name: roomName,
             }
@@ -78,7 +83,7 @@ $(document).ready(function() {
             Video.connect(data.token, options).then(roomJoined, function(err) {
                 console.error("Could not connect with Twilio", err.message);
             });
-        }
+        });
 
         // Define on click event for leaving actual room
         leaveRoomButton.onclick = function() {
@@ -93,11 +98,21 @@ $(document).ready(function() {
         console.log("Joined room as " + identity);
 
         // Hide 'Join' button 
-        joinRoomButton.style.display = 'none';
+        $joinRoomButton.css("display", "none");
         leaveRoomButton.style.display = 'flex';
+        micHandlerButton.style.display = 'flex';
 
+        localMediaTracks = room.localParticipant.tracks;
+        let filteredTracks = localMediaTracks;
+
+        if(callType === 'voice') {
+            filteredTracks = Array.from(localMediaTracks.values()).filter(function(track) {
+                return track.kind !== 'video';
+            });
+        }
+            
         // Attach tracks for local participant
-        tracksHelperModule.attachParticipantTracks(room.localParticipant, localMediaContainer);
+        tracksHelperModule.attachParticipantTracks({tracks: filteredTracks}, localMediaContainer);
 
         // Attach the Tracks of the Room's Participants.
         room.participants.forEach(function(participant) {
@@ -137,8 +152,25 @@ $(document).ready(function() {
 
             roomInstance = null;
 
-            joinRoomButton.style.display = 'flex';
+            $joinRoomButton.css("display", "flex")
             leaveRoomButton.style.display = 'none';
+            micHandlerButton.style.display = 'none';
         });
+
+        // Define on click event for mic button
+        micHandlerButton.onclick = function() {
+            Array.from(localMediaTracks.values()).forEach(function(track) {
+                if(track.kind !== 'video') {
+                    if(track.isEnabled) {
+                        track.disable();
+                        micHandlerButton.className = 'custom-button mic no-mic';
+                    }
+                    if(!track.isEnabled) {
+                        track.enable();
+                        micHandlerButton.className = 'custom-button mic';
+                    }
+                }
+            });
+        }
     }
 });
