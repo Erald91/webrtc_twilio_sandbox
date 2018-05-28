@@ -1,0 +1,2 @@
+# Remove modules dependencies from git
+/node_modules
