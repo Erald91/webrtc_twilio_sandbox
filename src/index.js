@@ -77,17 +77,22 @@ $(document).ready(function() {
             var _this = $(event.target);
             callType = _this.data().type;
 
-            const options = {
-                name: roomName,
-                logLevel: 'debug',
-                tracks: await Video.createLocalTracks({ audio: true, video: true })
-            }
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                var videoInput = devices.filter(device => device.kind === 'videoinput').pop();
+                return Video.createLocalTracks({ audio: true, video: { deviceId: videoInput.deviceId } });
+            }).then(localTracks => {
+                const options = {
+                    name: roomName,
+                    logLevel: 'debug',
+                    tracks: localTracks
+                }
 
-            // Manage to join room with provided token and
-            // display LocalParticipant tracks
-            Video.connect(data.token, options).then(roomJoined, function(err) {
-                console.error("Could not connect with Twilio", err.message);
-            });
+                // Manage to join room with provided token and
+                // display LocalParticipant tracks
+                Video.connect(data.token, options).then(roomJoined, function(err) {
+                    console.error("Could not connect with Twilio", err.message);
+                });
+            });            
         });
 
         // Define on click event for leaving actual room
