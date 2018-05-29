@@ -61,6 +61,7 @@ $(document).ready(function() {
     var $joinRoomButton = $('.join-room');
     var leaveRoomButton = document.getElementById('leave-room');
     var micHandlerButton = document.getElementById('mic-handler');
+    var cameraHandlerButton = document.getElementById('camera-handler');
     var videoControls = document.getElementById('video-controls');
     var localMediaContainer = document.getElementById('local-media-icon');
     var remoteMediaContainer = document.getElementById('remote-media-container');
@@ -69,16 +70,19 @@ $(document).ready(function() {
         identity = data.identity;
         // When Twilio token recived successfully we can display controls
         videoControls.style.display = 'flex';
-        $joinRoomButton.css("display", "flex");
+        $joinRoomButton.css('display', 'flex');
 
         // Do needed actions after "Join" button is triggered
         $joinRoomButton.on('click', async function(event) {
             var _this = $(event.target);
             callType = _this.data().type;
+
             const options = {
                 name: roomName,
-                tracks: await Video.createLocalTracks({ audio: true, video: callType === 'video' })
+                logLevel: 'debug',
+                tracks: await Video.createLocalTracks({ audio: true, video: true })
             }
+
             // Manage to join room with provided token and
             // display LocalParticipant tracks
             Video.connect(data.token, options).then(roomJoined, function(err) {
@@ -93,27 +97,46 @@ $(document).ready(function() {
         };
     });
 
+    function handleMedia(target, type) {
+        const notCheckedClassName = type === 'audio' ? 'mic no-mic' : 'camera no-camera';
+        const checkedClassName = type === 'audio' ? 'mic' : 'camera';
+
+        Array.from(localMediaTracks.values()).forEach(function(track) {
+            if(track.kind == type) {
+                if(track.isEnabled) {
+                    track.disable();
+                    target.className = 'custom-button media-button ' + notCheckedClassName;
+                } else {
+                    track.enable();
+                    target.className = 'custom-button media-button ' + checkedClassName;
+                }
+            }
+        });
+    }
+
     function roomJoined(room) {
         roomInstance = room;
 
         console.log("Joined room as " + identity);
 
-        // Hide 'Join' button 
-        $joinRoomButton.css("display", "none");
+        // Hide/Show options as needed
+        $joinRoomButton.css('display', 'none');
         leaveRoomButton.style.display = 'flex';
         micHandlerButton.style.display = 'flex';
+        cameraHandlerButton.style.display = 'flex';
+
+        cameraHandlerButton.className = callType === 'video' 
+            ? cameraHandlerButton.className 
+            : 'custom-button media-button camera no-camera';
 
         localMediaTracks = room.localParticipant.tracks;
-        let filteredTracks = localMediaTracks;
 
-        if(callType === 'voice') {
-            filteredTracks = Array.from(localMediaTracks.values()).filter(function(track) {
-                return track.kind !== 'video';
-            });
-        }
+        Array.from(localMediaTracks.values()).forEach(function(track) {
+            if(callType === 'voice' && track.kind === 'video') track.disable();
+        });
             
         // Attach tracks for local participant
-        tracksHelperModule.attachParticipantTracks({tracks: filteredTracks}, localMediaContainer);
+        tracksHelperModule.attachParticipantTracks({tracks: localMediaTracks}, localMediaContainer);
 
         // Attach the Tracks of the Room's Participants.
         room.participants.forEach(function(participant) {
@@ -151,26 +174,31 @@ $(document).ready(function() {
             tracksHelperModule.detachParticipantTracks(room.localParticipant);
             room.participants.forEach(tracksHelperModule.detachParticipantTracks);
 
+            if(localMediaTracks) {
+                localMediaTracks.forEach(function(track) {
+                    track.stop();
+                });
+            }
+
             roomInstance = null;
 
-            $joinRoomButton.css("display", "flex")
+            $joinRoomButton.css('display', 'flex')
             leaveRoomButton.style.display = 'none';
+
             micHandlerButton.style.display = 'none';
+            micHandlerButton.className = 'custom-button media-button mic';
+
+            cameraHandlerButton.style.display = 'none';
+            cameraHandlerButton.className = 'custom-button media-button camera';
         });
 
         // Define on click event for mic button
-        micHandlerButton.onclick = function() {
-            Array.from(localMediaTracks.values()).forEach(function(track) {
-                if(track.kind !== 'video') {
-                    if(track.isEnabled) {
-                        track.disable();
-                        micHandlerButton.className = 'custom-button mic no-mic';
-                    } else {
-                        track.enable();
-                        micHandlerButton.className = 'custom-button mic';
-                    }
-                }
-            });
+        micHandlerButton.onclick = function(event) {
+            handleMedia(event.target, 'audio');
+        }
+        // Define on click event for camera button
+        cameraHandlerButton.onclick = function(event) {
+            handleMedia(event.target, 'video');
         }
     }
 });

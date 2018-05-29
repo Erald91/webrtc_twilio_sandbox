@@ -83,14 +83,25 @@
     background-color: #11b511;
 }
 
-.app-wrapper .custom-button.mic {
-    background-image: url(./images/mic.png);
+.app-wrapper .custom-button.media-button {
     background-size: 25px;
     background-position: center;
     background-color: #d3d3d3;
     background-repeat: no-repeat;
 }
 
+.app-wrapper .custom-button.mic {
+    background-image: url(./images/mic.png);
+}
+
 .app-wrapper .custom-button.mic.no-mic {
     background-image: url(./images/no_mic.png) !important;
+}
+
+.app-wrapper .custom-button.camera {
+    background-image: url(./images/camera.png);
+}
+
+.app-wrapper .custom-button.camera.no-camera {
+    background-image: url(./images/no_camera.png) !important;
 }
