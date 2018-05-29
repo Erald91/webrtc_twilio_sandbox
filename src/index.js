@@ -72,11 +72,12 @@ $(document).ready(function() {
         $joinRoomButton.css("display", "flex");
 
         // Do needed actions after "Join" button is triggered
-        $joinRoomButton.on('click', function(event) {
+        $joinRoomButton.on('click', async function(event) {
             var _this = $(event.target);
             callType = _this.data().type;
             const options = {
                 name: roomName,
+                tracks: await Video.createLocalTracks({ audio: true, video: callType === 'video' })
             }
             // Manage to join room with provided token and
             // display LocalParticipant tracks
@@ -164,8 +165,7 @@ $(document).ready(function() {
                     if(track.isEnabled) {
                         track.disable();
                         micHandlerButton.className = 'custom-button mic no-mic';
-                    }
-                    if(!track.isEnabled) {
+                    } else {
                         track.enable();
                         micHandlerButton.className = 'custom-button mic';
                     }
