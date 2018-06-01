@@ -20,6 +20,7 @@
     "dotenv": "^5.0.1",
     "express": "^4.16.3",
     "twilio": "^3.17.0",
-    "twilio-video": "^1.9.0"
+    "twilio-conversations": "^0.13.10",
+    "twilio-video": "^1.10.0"
   }
 }

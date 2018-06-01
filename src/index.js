@@ -4,10 +4,10 @@ var Video = require('twilio-video');
 
 var identity;
 var roomInstance;
-var localMediaTracks;
 var callType;
 var audioInput;
 var videoInput;
+var localParticipant;
 
 var tracksHelperModule = (function() {
     var factory = {
@@ -87,7 +87,7 @@ $(document).ready(function() {
                 // Check if we have audioinput for user device
                 audioInput = audioInput.length ? true : false;
                 // Prepare video configurations
-                const videoConf = videoInput 
+                const videoConf = callType === 'video' && videoInput
                     ? { deviceId: videoInput.deviceId } 
                     : false;
                 if(callType === 'video' && !videoInput) {
@@ -119,29 +119,52 @@ $(document).ready(function() {
         };
     });
 
-    function handleMedia(target, type) {
-        const notCheckedClassName = type === 'audio' ? 'mic no-mic' : 'camera no-camera';
-        const checkedClassName = type === 'audio' ? 'mic' : 'camera';
-
-        let trackType = Array.from(localMediaTracks.values()).find(track => track.kind == type);
-        if(!trackType) {
-           return alert((type === 'audio' ? "Audio" : "Video") + " input device not found");
+    async function handleMedia(target, type) {
+        if(type === 'video' && !videoInput) {
+            return alert("Video input device not found");
         }
 
-        Array.from(localMediaTracks.values()).forEach(function(track) {
+        if(type === 'audio' && !audioInput) {
+            return alert("Audio input device not found");
+        }
+
+
+        if(type === 'video') {
+            const trackType = Array.from(localParticipant.tracks.values()).find(track => track.kind == type);
+            if(trackType) {
+                // Unpublish video track
+                await localParticipant.unpublishTrack(trackType);
+                // Stop generating streams from local devices
+                trackType.stop();
+                // Deatch video element from DOM
+                tracksHelperModule.detachTracks([trackType]);
+                target.className = 'custom-button media-button camera no-camera';
+            } else {
+                // Create new LocalVideoTrack
+                var videoTrack = await Video.createLocalTracks({ video: {deviceId: videoInput.deviceId} });
+                // Publish track to be spread to allow participants
+                await localParticipant.publishTrack(videoTrack[0]);
+                // Attach video element to DOM
+                tracksHelperModule.attachTracks(videoTrack, localMediaContainer);
+                target.className = 'custom-button media-button camera';
+            }
+            return;
+        }
+
+        Array.from(localParticipant.tracks.values()).forEach(function(track) {
             if(track.kind == type) {
                 if(track.isEnabled) {
                     track.disable();
-                    target.className = 'custom-button media-button ' + notCheckedClassName;
+                    target.className = 'custom-button media-button mic no-mic'
                 } else {
                     track.enable();
-                    target.className = 'custom-button media-button ' + checkedClassName;
+                    target.className = 'custom-button media-button mic'
                 }
             }
         });
     }
 
-    function roomJoined(room) {
+    async function roomJoined(room) {
         roomInstance = room;
 
         console.log("Joined room as " + identity);
@@ -152,7 +175,7 @@ $(document).ready(function() {
         micHandlerButton.style.display = 'flex';
         cameraHandlerButton.style.display = 'flex';
 
-        cameraHandlerButton.className = callType === 'video' && videoInput 
+        cameraHandlerButton.className = callType === 'video' && videoInput
             ? cameraHandlerButton.className 
             : 'custom-button media-button camera no-camera';
 
@@ -160,13 +183,10 @@ $(document).ready(function() {
             ? micHandlerButton.className 
             : 'custom-button media-button mic no-mic';
 
-        localMediaTracks = room.localParticipant.tracks;
-        Array.from(localMediaTracks.values()).forEach(function(track) {
-            if(callType === 'voice' && track.kind === 'video') track.disable();
-        });
-            
+        localParticipant = room.localParticipant;
+                       
         // Attach tracks for local participant
-        tracksHelperModule.attachParticipantTracks({tracks: localMediaTracks}, localMediaContainer);
+        tracksHelperModule.attachParticipantTracks({tracks: localParticipant.tracks}, localMediaContainer);
 
         // Attach the Tracks of the Room's Participants.
         room.participants.forEach(function(participant) {
@@ -201,11 +221,11 @@ $(document).ready(function() {
         // of all Participants, including that of the LocalParticipant.
         room.on('disconnected', function() {
             console.log('Left');
-            tracksHelperModule.detachParticipantTracks(room.localParticipant);
+            tracksHelperModule.detachParticipantTracks(localParticipant);
             room.participants.forEach(tracksHelperModule.detachParticipantTracks);
 
-            if(localMediaTracks) {
-                localMediaTracks.forEach(function(track) {
+            if(localParticipant.tracks) {
+                localParticipant.tracks.forEach(function(track) {
                     track.stop();
                 });
             }
