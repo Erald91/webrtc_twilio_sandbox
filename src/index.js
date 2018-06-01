@@ -1,6 +1,7 @@
 "use strict";
 
 var Video = require('twilio-video');
+var Utils = require('./utils');
 
 var identity;
 var roomInstance;
