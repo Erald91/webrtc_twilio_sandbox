@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 var Video = require('twilio-video');
 
@@ -6,6 +6,8 @@ var identity;
 var roomInstance;
 var localMediaTracks;
 var callType;
+var audioInput;
+var videoInput;
 
 var tracksHelperModule = (function() {
     var factory = {
@@ -78,12 +80,27 @@ $(document).ready(function() {
             callType = _this.data().type;
 
             navigator.mediaDevices.enumerateDevices().then(devices => {
-                var videoInput = devices.filter(device => device.kind === 'videoinput').pop();
-                return Video.createLocalTracks({ audio: true, video: { deviceId: videoInput.deviceId } });
+                videoInput = devices.filter(device => device.kind === 'videoinput');
+                audioInput = devices.filter(device => device.kind === 'audioinput')
+                // Check if we have videoinput for user device
+                videoInput = videoInput.length ? videoInput.pop() : false;
+                // Check if we have audioinput for user device
+                audioInput = audioInput.length ? true : false;
+                // Prepare video configurations
+                const videoConf = videoInput 
+                    ? { deviceId: videoInput.deviceId } 
+                    : false;
+                if(callType === 'video' && !videoInput) {
+                    alert("Video input device not found");
+                }
+                if(!audioInput) {
+                    alert("Audio input device not found");
+                }
+                return Video.createLocalTracks({ audio: audioInput, video: videoConf });
             }).then(localTracks => {
                 const options = {
                     name: roomName,
-                    logLevel: 'debug',
+                    // logLevel: 'debug',
                     tracks: localTracks
                 }
 
@@ -105,6 +122,11 @@ $(document).ready(function() {
     function handleMedia(target, type) {
         const notCheckedClassName = type === 'audio' ? 'mic no-mic' : 'camera no-camera';
         const checkedClassName = type === 'audio' ? 'mic' : 'camera';
+
+        let trackType = Array.from(localMediaTracks.values()).find(track => track.kind == type);
+        if(!trackType) {
+           return alert((type === 'audio' ? "Audio" : "Video") + " input device not found");
+        }
 
         Array.from(localMediaTracks.values()).forEach(function(track) {
             if(track.kind == type) {
@@ -130,12 +152,15 @@ $(document).ready(function() {
         micHandlerButton.style.display = 'flex';
         cameraHandlerButton.style.display = 'flex';
 
-        cameraHandlerButton.className = callType === 'video' 
+        cameraHandlerButton.className = callType === 'video' && videoInput 
             ? cameraHandlerButton.className 
             : 'custom-button media-button camera no-camera';
 
-        localMediaTracks = room.localParticipant.tracks;
+        micHandlerButton.className = audioInput 
+            ? micHandlerButton.className 
+            : 'custom-button media-button mic no-mic';
 
+        localMediaTracks = room.localParticipant.tracks;
         Array.from(localMediaTracks.values()).forEach(function(track) {
             if(callType === 'voice' && track.kind === 'video') track.disable();
         });
