@@ -180,9 +180,18 @@ $(document).ready(function() {
                     videoTrack = await Video.createLocalTracks({ video: { deviceId: videoInput.deviceId } });
                 } else {
                     const stream = await Utils.getUserScreen(['window', 'screen', 'tab'], extensionID);
+                    
                     if (stream instanceof Error) return console.error(videoTrack.message);
 
-                    videoTrack = [new Video.LocalVideoTrack(stream.getVideoTracks()[0])];
+                    const localVideoTrack = new Video.LocalVideoTrack(stream.getVideoTracks()[0]);
+
+                    // Manage case when local video track is stopped
+                    localVideoTrack.once('stopped', async function() {
+                        await tracksHelperModule.unPublishVideoTrack(localVideoTrack);
+                        target.className = 'custom-button media-button share-screen no-share-screen';
+                    });
+
+                    videoTrack = [localVideoTrack];
                 }
    
                 await tracksHelperModule.publishVideoTrack(videoTrack[0], localMediaContainer);
