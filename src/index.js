@@ -177,7 +177,7 @@ $(document).ready(function() {
                 var videoTrack = null;
 
                 if(videoSource === 'camera') {
-                    videoTrack = await Video.createLocalTracks({ video: {deviceId: videoInput.deviceId} });
+                    videoTrack = await Video.createLocalTracks({ video: { deviceId: videoInput.deviceId } });
                 } else {
                     const stream = await Utils.getUserScreen(['window', 'screen', 'tab'], extensionID);
                     if (stream instanceof Error) return console.error(videoTrack.message);
@@ -293,11 +293,11 @@ $(document).ready(function() {
             handleMedia(event.target, 'audio');
         }
         // Define on click event for camera button
-        cameraHandlerButton.onclick = function(event) {
+        cameraHandlerButton.onclick = async function(event) {
             if (videoSource === 'screen') {
                 const videoTrack = tracksHelperModule.getLocalParticipantVideoTrack();
                 if (videoTrack) {
-                    tracksHelperModule.detachTracks([videoTrack]);
+                    await tracksHelperModule.unPublishVideoTrack(videoTrack);
                     shareScreenHandler.className = 'custom-button media-button share-screen no-share-screen';
                 }
             }
@@ -306,11 +306,11 @@ $(document).ready(function() {
         }
 
         // Define on click event for share screen button
-        shareScreenHandler.onclick = function(event) {
+        shareScreenHandler.onclick = async function(event) {
             if (videoSource === 'camera') {
                 const videoTrack = tracksHelperModule.getLocalParticipantVideoTrack();
                 if (videoTrack) {
-                    tracksHelperModule.detachTracks([videoTrack]);
+                    await tracksHelperModule.unPublishVideoTrack(videoTrack);
                     cameraHandlerButton.className = 'custom-button media-button camera no-camera';
                 }
             }
