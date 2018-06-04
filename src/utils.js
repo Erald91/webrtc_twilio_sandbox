@@ -28,8 +28,10 @@ const Utils = new (function() {
 			} else {
 				return navigator.mediaDevices.getUserMedia({
 					video: {
-						chromeMediaSource: 'desktop',
-						chromeMediaSourceId: response,
+						mandatory: {
+							chromeMediaSource: 'desktop',
+							chromeMediaSourceId: response,
+						}
 					}
 				});
 			}

@@ -9,6 +9,7 @@ var callType;
 var audioInput;
 var videoInput;
 var localParticipant;
+var videoSource;
 const extensionID = 'mmogfmkjpdmhnabfbnkhgaeenhgljnfp';
 
 var tracksHelperModule = (function() {
@@ -16,7 +17,10 @@ var tracksHelperModule = (function() {
         attachTracks: _attachTracks,
         attachParticipantTracks: _attachParticipantTracks,
         detachTracks: _detachTracks,
-        detachParticipantTracks: _detachParticipantTracks
+        detachParticipantTracks: _detachParticipantTracks,
+        unPublishVideoTrack: _unPublishVideoTrack,
+        publishVideoTrack: _publishVideoTrack,
+        getLocalParticipantVideoTrack: _getLocalParticipantVideoTrack,
     }
 
     // Attach the Tracks to the DOM.
@@ -56,6 +60,29 @@ var tracksHelperModule = (function() {
         _detachTracks(tracks);
     }
 
+    // Unpublish video track for local participant
+    async function _unPublishVideoTrack(track) {
+        // Unpublish video track
+        await localParticipant.unpublishTrack(track);
+        // Stop generating streams from local devices
+        track.stop();
+        // Detach video element from DOM
+        tracksHelperModule.detachTracks([track]);
+    }
+
+    // Publish video track for local participant
+    async function _publishVideoTrack(videoTrack, container) {
+        // Publish track to be spread to allow participants
+        await localParticipant.publishTrack(videoTrack);
+        // Attach video element to DOM
+        tracksHelperModule.attachTracks([videoTrack], container);
+    }
+
+    // Get video track for local participant
+    function _getLocalParticipantVideoTrack() {
+        return Array.from(localParticipant.tracks.values()).find(track => track.kind === 'video');
+    }
+
     return factory;
 }());
 
@@ -66,6 +93,7 @@ $(document).ready(function() {
     var leaveRoomButton = document.getElementById('leave-room');
     var micHandlerButton = document.getElementById('mic-handler');
     var cameraHandlerButton = document.getElementById('camera-handler');
+    var shareScreenHandler = document.getElementById('share-screen-handler');
     var videoControls = document.getElementById('video-controls');
     var localMediaContainer = document.getElementById('local-media-icon');
     var remoteMediaContainer = document.getElementById('remote-media-container');
@@ -80,6 +108,7 @@ $(document).ready(function() {
         $joinRoomButton.on('click', async function(event) {
             var _this = $(event.target);
             callType = _this.data().type;
+            videoSource = callType === 'video' ? 'camera' : '';
 
             navigator.mediaDevices.enumerateDevices().then(devices => {
                 videoInput = devices.filter(device => device.kind === 'videoinput');
@@ -132,23 +161,32 @@ $(document).ready(function() {
 
 
         if (type === 'video') {
-            const trackType = Array.from(localParticipant.tracks.values()).find(track => track.kind == type);
-            if (trackType) {
-                // Unpublish video track
-                await localParticipant.unpublishTrack(trackType);
-                // Stop generating streams from local devices
-                trackType.stop();
-                // Deatch video element from DOM
-                tracksHelperModule.detachTracks([trackType]);
-                target.className = 'custom-button media-button camera no-camera';
+            const enabledClass = videoSource === 'camera' 
+                ? 'custom-button media-button camera' 
+                : 'custom-button media-button share-screen';
+            const disabledClass = videoSource === 'camera' 
+                ? 'custom-button media-button camera no-camera' 
+                : 'custom-button media-button share-screen no-share-screen';
+
+            const currentVideoTrack = tracksHelperModule.getLocalParticipantVideoTrack();
+            if (currentVideoTrack) {
+                await tracksHelperModule.unPublishVideoTrack(currentVideoTrack);
+                target.className = disabledClass;
             } else {
                 // Create new LocalVideoTrack
-                var videoTrack = await Video.createLocalTracks({ video: {deviceId: videoInput.deviceId} });
-                // Publish track to be spread to allow participants
-                await localParticipant.publishTrack(videoTrack[0]);
-                // Attach video element to DOM
-                tracksHelperModule.attachTracks(videoTrack, localMediaContainer);
-                target.className = 'custom-button media-button camera';
+                var videoTrack = null;
+
+                if(videoSource === 'camera') {
+                    videoTrack = await Video.createLocalTracks({ video: {deviceId: videoInput.deviceId} });
+                } else {
+                    const stream = await Utils.getUserScreen(['window', 'screen', 'tab'], extensionID);
+                    if (stream instanceof Error) return console.error(videoTrack.message);
+
+                    videoTrack = [new Video.LocalVideoTrack(stream.getVideoTracks()[0])];
+                }
+   
+                await tracksHelperModule.publishVideoTrack(videoTrack[0], localMediaContainer);
+                target.className = enabledClass;
             }
             return;
         }
@@ -176,6 +214,7 @@ $(document).ready(function() {
         leaveRoomButton.style.display = 'flex';
         micHandlerButton.style.display = 'flex';
         cameraHandlerButton.style.display = 'flex';
+        shareScreenHandler.style.display = 'flex';
 
         cameraHandlerButton.className = callType === 'video' && videoInput
             ? cameraHandlerButton.className 
@@ -185,9 +224,9 @@ $(document).ready(function() {
             ? micHandlerButton.className 
             : 'custom-button media-button mic no-mic';
 
-        localParticipant = room.localParticipant;
+        shareScreenHandler.className = shareScreenHandler.className + ' no-share-screen';
 
-        const screenSharingVideo = await Utils.getUserScreen(['window', 'screen', 'tab'], extensionID);
+        localParticipant = room.localParticipant;
                        
         // Attach tracks for local participant
         tracksHelperModule.attachParticipantTracks({tracks: localParticipant.tracks}, localMediaContainer);
@@ -244,6 +283,9 @@ $(document).ready(function() {
 
             cameraHandlerButton.style.display = 'none';
             cameraHandlerButton.className = 'custom-button media-button camera';
+
+            shareScreenHandler.style.display = 'none';
+            shareScreenHandler.className = 'custom-button media-button share-screen';
         });
 
         // Define on click event for mic button
@@ -252,6 +294,27 @@ $(document).ready(function() {
         }
         // Define on click event for camera button
         cameraHandlerButton.onclick = function(event) {
+            if (videoSource === 'screen') {
+                const videoTrack = tracksHelperModule.getLocalParticipantVideoTrack();
+                if (videoTrack) {
+                    tracksHelperModule.detachTracks([videoTrack]);
+                    shareScreenHandler.className = 'custom-button media-button share-screen no-share-screen';
+                }
+            }
+            videoSource = $(event.target).data().source;
+            handleMedia(event.target, 'video');
+        }
+
+        // Define on click event for share screen button
+        shareScreenHandler.onclick = function(event) {
+            if (videoSource === 'camera') {
+                const videoTrack = tracksHelperModule.getLocalParticipantVideoTrack();
+                if (videoTrack) {
+                    tracksHelperModule.detachTracks([videoTrack]);
+                    cameraHandlerButton.className = 'custom-button media-button camera no-camera';
+                }
+            }
+            videoSource = $(event.target).data().source;
             handleMedia(event.target, 'video');
         }
     }

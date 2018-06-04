@@ -105,3 +105,11 @@
 .app-wrapper .custom-button.camera.no-camera {
     background-image: url(./images/no_camera.png) !important;
 }
+
+.app-wrapper .custom-button.share-screen {
+    background-image: url(./images/share_screen.png);
+}
+
+.app-wrapper .custom-button.share-screen.no-share-screen {
+    background-image: url(./images/no_share_screen.png) !important;
+}
