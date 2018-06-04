@@ -1,7 +1,7 @@
 "use strict";
 
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
-	switch (message & message.type) {
+	switch (message && message.type) {
 		case 'getUserScreen':
 			handleGetUserScreenRequest(message.sources, sender.tab, sendResponse);
 			break;
@@ -10,7 +10,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
 				type: 'error',
 				message: 'Unrecognized request',
 			});
+			break;
 	}
+
+	return true;
 });
 
 function handleGetUserScreenRequest(sources, tab, sendResponse) {

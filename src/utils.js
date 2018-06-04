@@ -15,20 +15,24 @@ const Utils = new (function() {
 						resolve(response.streamId);
 						break;
 					case 'error':
-						reject(new Error(error.message));
+						resolve(new Error(response.message));
 						break;
 					default:
-						reject(new Error('Unknown response'));
+						resolve(new Error('Unknown response'));
 						break;
 				}
 			});
-		}).then(function(streamId) {
-			return navigator.mediaDevices.getUserMedia({
-				video: {
-					chromeMediaSource: 'desktop',
-					chromeMediaSourceId: streamId,
-				}
-			});
+		}).then(function(response) {
+			if (response instanceof Error) {
+				return Promise.resolve(response);
+			} else {
+				return navigator.mediaDevices.getUserMedia({
+					video: {
+						chromeMediaSource: 'desktop',
+						chromeMediaSourceId: response,
+					}
+				});
+			}
 		});
 	}
 

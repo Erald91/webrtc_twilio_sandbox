@@ -9,6 +9,7 @@ var callType;
 var audioInput;
 var videoInput;
 var localParticipant;
+const extensionID = 'mmogfmkjpdmhnabfbnkhgaeenhgljnfp';
 
 var tracksHelperModule = (function() {
     var factory = {
@@ -22,7 +23,7 @@ var tracksHelperModule = (function() {
     function _attachTracks(tracks, container) {
         tracks.forEach(function(track) {
             var trackElement = track.attach();
-            if(track.kind === 'video') {
+            if (track.kind === 'video') {
                 var videoContainer = document.createElement('div');
                 videoContainer.className = 'video-container';
                 videoContainer.appendChild(trackElement);
@@ -43,7 +44,7 @@ var tracksHelperModule = (function() {
         tracks.forEach(function(track) {
             var isVideo = track.kind === 'video';
             track.detach().forEach(function(detachedElement) {
-                if(isVideo) detachedElement.parentNode.remove();
+                if (isVideo) detachedElement.parentNode.remove();
                 else detachedElement.remove();
             });
         });
@@ -91,10 +92,10 @@ $(document).ready(function() {
                 const videoConf = callType === 'video' && videoInput
                     ? { deviceId: videoInput.deviceId } 
                     : false;
-                if(callType === 'video' && !videoInput) {
+                if (callType === 'video' && !videoInput) {
                     alert("Video input device not found");
                 }
-                if(!audioInput) {
+                if (!audioInput) {
                     alert("Audio input device not found");
                 }
                 return Video.createLocalTracks({ audio: audioInput, video: videoConf });
@@ -121,18 +122,18 @@ $(document).ready(function() {
     });
 
     async function handleMedia(target, type) {
-        if(type === 'video' && !videoInput) {
+        if (type === 'video' && !videoInput) {
             return alert("Video input device not found");
         }
 
-        if(type === 'audio' && !audioInput) {
+        if (type === 'audio' && !audioInput) {
             return alert("Audio input device not found");
         }
 
 
-        if(type === 'video') {
+        if (type === 'video') {
             const trackType = Array.from(localParticipant.tracks.values()).find(track => track.kind == type);
-            if(trackType) {
+            if (trackType) {
                 // Unpublish video track
                 await localParticipant.unpublishTrack(trackType);
                 // Stop generating streams from local devices
@@ -153,8 +154,8 @@ $(document).ready(function() {
         }
 
         Array.from(localParticipant.tracks.values()).forEach(function(track) {
-            if(track.kind == type) {
-                if(track.isEnabled) {
+            if (track.kind == type) {
+                if (track.isEnabled) {
                     track.disable();
                     target.className = 'custom-button media-button mic no-mic'
                 } else {
@@ -185,6 +186,8 @@ $(document).ready(function() {
             : 'custom-button media-button mic no-mic';
 
         localParticipant = room.localParticipant;
+
+        const screenSharingVideo = await Utils.getUserScreen(['window', 'screen', 'tab'], extensionID);
                        
         // Attach tracks for local participant
         tracksHelperModule.attachParticipantTracks({tracks: localParticipant.tracks}, localMediaContainer);
@@ -225,7 +228,7 @@ $(document).ready(function() {
             tracksHelperModule.detachParticipantTracks(localParticipant);
             room.participants.forEach(tracksHelperModule.detachParticipantTracks);
 
-            if(localParticipant.tracks) {
+            if (localParticipant.tracks) {
                 localParticipant.tracks.forEach(function(track) {
                     track.stop();
                 });
