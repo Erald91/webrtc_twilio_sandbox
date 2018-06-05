@@ -186,9 +186,9 @@ $(document).ready(function() {
                 } else {
                     let stream = null;
 
-                    if(isChrome) {
+                    if(isChrome || isOpera) {
                         stream = await Utils.getUserScreenChrome(['window', 'screen', 'tab'], extensionID);
-                    } else if (isFirefox) {
+                    } else {
                         stream = await Utils.getUserScreenMozilla();
                     }
                     
