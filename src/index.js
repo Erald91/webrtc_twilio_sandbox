@@ -12,6 +12,11 @@ var localParticipant;
 var videoSource;
 const extensionID = 'mmogfmkjpdmhnabfbnkhgaeenhgljnfp';
 
+const isFirefox = typeof window.InstallTrigger !== 'undefined';
+const isOpera = !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+const isChrome = !!window.chrome && !isOpera;
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 var tracksHelperModule = (function() {
     var factory = {
         attachTracks: _attachTracks,
@@ -179,7 +184,13 @@ $(document).ready(function() {
                 if(videoSource === 'camera') {
                     videoTrack = await Video.createLocalTracks({ video: { deviceId: videoInput.deviceId } });
                 } else {
-                    const stream = await Utils.getUserScreen(['window', 'screen', 'tab'], extensionID);
+                    let stream = null;
+
+                    if(isChrome) {
+                        stream = await Utils.getUserScreenChrome(['window', 'screen', 'tab'], extensionID);
+                    } else if (isFirefox) {
+                        stream = await Utils.getUserScreenMozilla();
+                    }
                     
                     if (stream instanceof Error) {
                         return (stream.code === 1001 && console.error(stream.message)) || (stream.code === 1002 && alert(stream.message));

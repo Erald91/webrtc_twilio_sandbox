@@ -3,7 +3,7 @@
 const Utils = new (function() {
 	const Utils = function() {}
 
-	Utils.prototype.getUserScreen = function(sources, extensionId) {
+	Utils.prototype.getUserScreenChrome = function(sources, extensionId) {
 		const request = {
 			type: 'getUserScreen',
 			sources: sources,
@@ -40,6 +40,14 @@ const Utils = new (function() {
 				});
 			}
 		});
+	}
+
+	Utils.prototype.getUserScreenMozilla = function() {
+		return navigator.mediaDevices.getUserMedia({
+			video: {
+				mediaSource: "window"
+			}
+		}).then(stream => stream);
 	}
 
 	return Utils;
