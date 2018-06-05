@@ -181,7 +181,9 @@ $(document).ready(function() {
                 } else {
                     const stream = await Utils.getUserScreen(['window', 'screen', 'tab'], extensionID);
                     
-                    if (stream instanceof Error) return console.error(videoTrack.message);
+                    if (stream instanceof Error) {
+                        return (stream.code === 1001 && console.error(stream.message)) || (stream.code === 1002 && alert(stream.message));
+                    };
 
                     const localVideoTrack = new Video.LocalVideoTrack(stream.getVideoTracks()[0]);
 

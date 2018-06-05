@@ -15,10 +15,14 @@ const Utils = new (function() {
 						resolve(response.streamId);
 						break;
 					case 'error':
-						resolve(new Error(response.message));
+						var error = new Error(response.message);
+						error.code = 1001;
+						resolve(error);
 						break;
 					default:
-						resolve(new Error('Unknown response'));
+						var error = new Error('Not able to connect with extension');
+						error.code = 1002;
+						resolve(error);
 						break;
 				}
 			});
