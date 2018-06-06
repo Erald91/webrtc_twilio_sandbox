@@ -103,7 +103,7 @@ $(document).ready(function() {
     var localMediaContainer = document.getElementById('local-media-icon');
     var remoteMediaContainer = document.getElementById('remote-media-container');
 
-    $.getJSON('/twilio-token', function(data) {
+    $.getJSON('/twilio/token', function(data) {
         identity = data.identity;
         // When Twilio token recived successfully we can display controls
         videoControls.style.display = 'flex';
@@ -228,7 +228,7 @@ $(document).ready(function() {
 
     async function roomJoined(room) {
         roomInstance = room;
-
+        console.log(room);
         console.log("Joined room as " + identity);
 
         // Hide/Show options as needed
@@ -260,7 +260,9 @@ $(document).ready(function() {
         });
 
         // When a Participant joins the Room, log the event.
-        room.on('participantConnected', function(participant) {
+        room.on('participantConnected', async function(participant) {
+            let connectedParticipants = await Utils.get('/twilio/participants/' + roomInstance.sid);
+            console.log(connectedParticipants);
             console.log("Joining: '" + participant.identity + "'");
         });
 

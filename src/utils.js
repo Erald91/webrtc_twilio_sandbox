@@ -50,6 +50,24 @@ const Utils = new (function() {
 		}).then(stream => stream);
 	}
 
+	Utils.prototype.get = function(url, data) {
+		data = typeof data === 'undefined' ? {} : data;
+		return new Promise((resolve, reject) => {
+			$.ajax({
+				url: url,
+				method: "GET",
+				data: data,
+				dataType: "application/json",
+				success: function(data) {
+					resolve(data);
+				},
+				error: function(jqXHR) {
+					reject(jqXHR.responseText);
+				}
+			});
+		}).then(result => result, error => error);
+	}
+
 	return Utils;
 }());
 
