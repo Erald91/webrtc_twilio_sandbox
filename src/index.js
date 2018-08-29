@@ -10,7 +10,7 @@ var audioInput;
 var videoInput;
 var localParticipant;
 var videoSource;
-const extensionID = 'mmogfmkjpdmhnabfbnkhgaeenhgljnfp';
+const extensionID = 'mnopnoljkmgggddajmafdfjkakmlleko';
 
 const isFirefox = typeof window.InstallTrigger !== 'undefined';
 const isOpera = !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;

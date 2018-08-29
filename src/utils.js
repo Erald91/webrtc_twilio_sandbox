@@ -3,11 +3,34 @@
 const Utils = new (function() {
 	const Utils = function() {}
 
-	Utils.prototype.getUserScreenChrome = function(sources, extensionId) {
+	Utils.prototype.validateExtensionInstallation = function(extensionId) {
+		return new Promise((resolve, reject) => {
+			const type = 'version';
+			chrome.runtime.sendMessage(extensionId, { type }, function(response) {
+				if (!response) {
+					reject({ type: 'error', message: 'Extension not found' });
+				} else {
+					resolve(response);
+				}
+			});
+		}).then(success => success, error => error);
+	}
+
+	Utils.prototype.getUserScreenChrome = async function(sources, extensionId) {
 		const request = {
-			type: 'getUserScreen',
+			type: 'getUserScreenStream',
 			sources: sources,
 		}
+
+		const validation = await this.validateExtensionInstallation(extensionId);
+		if (validation.type === 'error') {
+			var error = new Error(validation.message);
+			error.code = 1002;
+			return Promise.resolve(error);
+		}
+
+		console.log("Validation", validation);
+
 		return new Promise((resolve, reject) => {
 			chrome.runtime.sendMessage(extensionId, request, function(response) {
 				switch(response && response.type) {
